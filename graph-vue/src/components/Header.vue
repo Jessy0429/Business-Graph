@@ -5,8 +5,8 @@
       <el-col id="menu" >
         <el-menu  class="el-menu-demo" mode="horizontal" @select="handleSelect">
           <el-menu-item index="1">关系搜索</el-menu-item>
-          <el-menu-item index="2">股权结构</el-menu-item>
-          <el-menu-item index="3">关联方</el-menu-item>
+          <el-menu-item index="2">关联方</el-menu-item>
+          <el-menu-item index="3">股权结构</el-menu-item>
           <el-menu-item index="4">疑似实际控股人</el-menu-item>
         </el-menu>
       </el-col>
@@ -34,6 +34,18 @@ export default {
       if(keyPath[0] === '1'){
         this.clickType = 'showRelationshipPage';
         this.$router.push({path:'relationship'});
+      }
+      else if(keyPath[0] === '2'){
+        this.clickType = 'showRelatedPartiesPage';
+        this.$router.push({path:'relatedparty'});
+      }
+      else if(keyPath[0] === '3'){
+        this.clickType = 'showRelatedPartiesPage';
+        this.$router.push({path:'shareholding'});
+      }
+      else if(keyPath[0] === '4'){
+        this.clickType = 'showRelatedPartiesPage';
+        this.$router.push({path:'stockholder'});
       }
       // if (keyPath[0] === "5" || keyPath[0] === "8") {
       //   this.$store.commit('showMainGraph', true);
