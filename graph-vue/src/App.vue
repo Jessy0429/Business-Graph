@@ -21,8 +21,8 @@ export default {
   methods: {
     ping() {
       // 使用 axios 向 flask 发送请求
-      const url = "http://127.0.0.1:5000/api/ping";
-      this.axios.get(url)
+      const url = "http://10.249.46.195:7478/ping";
+      this.axios.get(url, {params: 'hello'})
           .then((res) => {
             console.log(res.data);
           })

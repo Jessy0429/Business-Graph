@@ -3,55 +3,7 @@
     <div id="GraphLayer" style="">
       <svg id="GraphD3"></svg>
     </div>
-    <div id="SetBar">
-      <el-row>
-        <el-col :span="4">
-          <el-input
-                placeholder="请输入内容"
-                v-model="search1Input"
-                clearable>
-          </el-input>
-<!--          <el-autocomplete-->
-<!--              class="inline-input"-->
-<!--              v-model="searchInput"-->
-<!--              :fetch-suggestions="searchAutoComplete"-->
-<!--              placeholder="搜索"-->
-<!--              @select="handleSelect"-->
-<!--          >-->
-<!--            <el-button slot="append" icon="el-icon-search" @click="findSubGraph"  ></el-button>-->
-<!--          </el-autocomplete>-->
-<!--          <el-input v-model="searchInput" clearable placeholder="搜索" @keydown.enter.native="findSubGraph">-->
-<!--            <el-button slot="append" icon="el-icon-search" @click="findSubGraph"></el-button>-->
-<!--          </el-input>-->
-        </el-col>
-        <el-col :span="2" :offset="1">
-          <el-select v-model="search1Select" placeholder="选择人">
-            <el-option>
-            </el-option>
-          </el-select>
-        </el-col>
-        <el-col :span="4" :offset="1">
-          <el-input placeholder="请输入内容" v-model="search2Input" clearable></el-input>
-        </el-col>
-        <el-col :span="2" :offset="1">
-          <el-select v-model="search2Select" placeholder="选择人"></el-select>
-        </el-col>
-        <el-col :span="4" :offset="1">
-          <el-select v-model="searchRelation" multiple placeholder="选择关系">
-            <el-option
-                v-for="item in relationlist"
-                :key="item.value"
-                :label="item.label"
-                :value="item.value">
-            </el-option>
-          </el-select>
-        </el-col>
-        <el-col :span="1" :offset="1">
-          <el-button type="primary" round @click="findSubGraph">搜索</el-button>
-        </el-col>
-
-      </el-row>
-    </div>
+    <SetBar @search="findGraph"></SetBar>
     <div id="Tags">
       <el-tag :color="nodeLables[0].color" effect="dark">{{nodeLables[0].label}}</el-tag>
       <el-tag :color="nodeLables[1].color" effect="dark">{{nodeLables[1].label}}</el-tag>
@@ -64,6 +16,7 @@
 
 <script>
 import * as d3 from 'd3';
+import SetBar from "./SetBar";
 
 // var nodes = [
 //   {index: 0, label: 'Node 2', type: 1},
@@ -79,19 +32,12 @@ const colorList = [
   '#BC7CDA',
   '#F385A8',
 ];
-const relations = [
-  {value: 1, label: '股东关系'},
-  {value: 2, label: '对外投资关系'},
-  {value: 3, label: '董监高关系'},
-  {value: 4, label: '客户关系'},
-  {value: 5, label: '供应商关系'}
-];
 const opacity = 1;
 const radius = 30;
 
 export default {
   name: "GraphD3",
-  components: {},
+  components: {SetBar},
   props:{
     isShowMainGraph: Boolean
   },
@@ -128,7 +74,6 @@ export default {
       node: undefined,
       link: undefined,
       arrow: undefined,
-      relationlist: relations,
       mouse: undefined,
       mouseIsSelect: false,
       cursor: undefined,
@@ -157,8 +102,6 @@ export default {
         },400)
       }
     };
-
-    this.initialGraph();
   },
   watch:{
     isShowMainGraph: function (newFlag, oldFlag){
@@ -170,74 +113,60 @@ export default {
   methods:{
     // 初始化图
     initialGraph(){
-      const url = "http://127.0.0.1:5000/api/get_data";
-      this.axios.get(url)
-          .then((res) => {
-            this.data = res.data;
-            // this.data = {"nodes":[
-            //   {index: 0, label: 'Node 2', type: 1},
-            //   {index: 1, label: 'Node 3', type: 2},
-            //   {index: 2, label: 'Node 4', type: 3}],
-            //     "edges":[{source: 0, target: 2},
-            //   {source: 0, target: 1}]};
-            this.indexNew2Old = [];
-            console.log(res.data);
-            this.svg = d3.select("#GraphD3")
-                .attr("height", this.height)
-                .attr("width", this.width)
-                .attr("viewBox", [-this.width / 2, -this.height / 2, this.width, this.height])
-                .on("mouseleave", this.mouseLeft)
-                .on("mousemove", this.mouseMoved)
-                // .on("click", this.clicked);
+        this.indexNew2Old = [];
+        console.log(this.data);
+        this.svg = d3.select("#GraphD3")
+            .attr("height", this.height)
+            .attr("width", this.width)
+            .attr("viewBox", [-this.width / 2, -this.height / 2, this.width, this.height])
+            .on("mouseleave", this.mouseLeft)
+            .on("mousemove", this.mouseMoved)
+            // .on("click", this.clicked);
 
-            this.simulation = d3.forceSimulation(this.data.nodes)
-                .force("charge", d3.forceManyBody().strength(-2000))
-                .force("link", d3.forceLink(this.data.links).distance(radius * 10))
-                .force('collide', d3.forceCollide().radius(radius))
-                .force("x", d3.forceX())
-                .force("y", d3.forceY())
-                .on("tick", this.ticked);
+        this.simulation = d3.forceSimulation(this.data.nodes)
+            .force("charge", d3.forceManyBody().strength(-2000))
+            .force("link", d3.forceLink(this.data.links).distance(radius * 10))
+            .force('collide', d3.forceCollide().radius(radius))
+            .force("x", d3.forceX())
+            .force("y", d3.forceY())
+            .on("tick", this.ticked);
 
-            this.cursor = this.svg.append('g')
-                .append("circle")
-                .attr("display","none")
-                .attr("fill", "none")
-                .attr("stroke-width", 2)
-                .attr("r", radius);
-            this.link = this.svg.append("g")
-                .selectAll("path");
-            this.linkText= this.svg.append("g")
-                .selectAll("text")
-            this.mouseLink = this.svg.append("g")
-                .selectAll("line");
-            this.node = this.svg.append("g")
-                .selectAll("circle");
-            this.nodeText = this.svg.append("g")
-                .selectAll("text");
-            this.svg.append("defs").append("marker")
-                .attr("id", "arrow")
-                .attr("markerUnits","userSpaceOnUse")
-                .attr("viewBox", "0 0 12 12")
-                .attr("refX", 10)
-                .attr("refY", 6)
-                .attr("markerWidth", 26)//标识的大小
-                .attr("markerHeight", 26)
-                .attr("orient", "auto")//绘制方向，可设定为：auto（自动确认方向）和 角度值
-                .attr("stroke-width",2)//箭头宽度
-                .append("path")
-                .attr("d", "M2,2 L10,6 L2,10 L6,6 L2,2")//箭头的路径
-                .attr('fill',"#666");//箭头颜色
+        this.cursor = this.svg.append('g')
+            .append("circle")
+            .attr("display","none")
+            .attr("fill", "none")
+            .attr("stroke-width", 2)
+            .attr("r", radius);
+        this.link = this.svg.append("g")
+            .selectAll("path");
+        this.linkText= this.svg.append("g")
+            .selectAll("text")
+        this.mouseLink = this.svg.append("g")
+            .selectAll("line");
+        this.node = this.svg.append("g")
+            .selectAll("circle");
+        this.nodeText = this.svg.append("g")
+            .selectAll("text");
+        this.svg.append("defs").append("marker")
+            .attr("id", "arrow")
+            .attr("markerUnits","userSpaceOnUse")
+            .attr("viewBox", "0 0 12 12")
+            .attr("refX", 10)
+            .attr("refY", 6)
+            .attr("markerWidth", 26)//标识的大小
+            .attr("markerHeight", 26)
+            .attr("orient", "auto")//绘制方向，可设定为：auto（自动确认方向）和 角度值
+            .attr("stroke-width",2)//箭头宽度
+            .append("path")
+            .attr("d", "M2,2 L10,6 L2,10 L6,6 L2,2")//箭头的路径
+            .attr('fill',"#666");//箭头颜色
 
-            this.dragger = this.drag(this, this.simulation, this.mouseLink, this.data);
-            this.zoom = d3.zoom().extent([[0, 0], [this.width, this.height]]).scaleExtent([0.1, 4]).on("zoom", this.zoomed);
-            this.svg.call(this.zoom);
-            this.svg.on("dblclick.zoom",null);
-            
-            this.updateGraph();
-          })
-          .catch((error) => {
-            console.log(error);
-          })
+        this.dragger = this.drag(this, this.simulation, this.mouseLink, this.data);
+        this.zoom = d3.zoom().extent([[0, 0], [this.width, this.height]]).scaleExtent([0.1, 4]).on("zoom", this.zoomed);
+        this.svg.call(this.zoom);
+        this.svg.on("dblclick.zoom",null);
+
+        this.updateGraph();
     },
 
     setGraphWindow() {
@@ -275,12 +204,12 @@ export default {
           })
     },
 
-    findSubGraph(){
+    findGraph(input){
       console.log("搜索");
-      let search = {'search1':this.search1Input, 'search2':this.search2Input};
-      console.log(search);
-      const url = "http://127.0.0.1:5000/api/get_search";
-      this.axios.get(url, {params: {search: search}})
+      let searchData = input;
+      console.log(searchData);
+      const url = "http://10.249.46.195:7478/fun1";
+      this.axios.get(url, {params: searchData})
           .then((res) => {
             console.log(res.data);
             if(res.data == false) {
@@ -290,8 +219,9 @@ export default {
               });
             }
             else {
-              this.data = res.data.graph;
-              this.indexNew2Old = res.data.new2old;
+              this.data = res.data;
+              // this.indexNew2Old = res.data.new2old;
+              this.initialGraph();
               this.updateGraph();
               // if (this.isInList(this.searchInput, this.autoCompleteList)){
               //   this.dialogCardVisible = true
@@ -542,13 +472,6 @@ export default {
     z-index: 1;
     /*border:6px solid #2196F3;*/
     /*background-color: #ddffff;*/
-  }
-  #SetBar{
-    position: absolute;
-    top: 120px;
-    left: 40px;
-    margin: 10px;
-    width: 95%;
   }
   .text {
     font-size: 15px;

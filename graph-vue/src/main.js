@@ -9,6 +9,7 @@ import store from './vuex/store'
 import vis from 'vis';
 
 Vue.config.productionTip = false
+axios.defaults.withCredentials = false
 Vue.use(ElementUI)
 Vue.use(VueAxios, axios)
 Vue.use(vis)
