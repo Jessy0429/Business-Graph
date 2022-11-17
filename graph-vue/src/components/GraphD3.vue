@@ -17,6 +17,7 @@
 <script>
 import * as d3 from 'd3';
 import SetBar from "./SetBar";
+import _ from "underscore";
 
 // var nodes = [
 //   {index: 0, label: 'Node 2', type: 1},
@@ -46,6 +47,7 @@ export default {
       width: 800,
       height:600,
       zoom: null,
+      path: undefined,
       isFullScreen: false,
       isVisible: false,
       timer: false,
@@ -79,7 +81,7 @@ export default {
       cursor: undefined,
       mouseLink: undefined,
 
-      isShown: false,
+      dialogShow: false,
       selectedNode: {},
       selectedEdge: {},
       cursorNode: {},
@@ -102,6 +104,7 @@ export default {
         },400)
       }
     };
+    this.initialGraph();
   },
   watch:{
     isShowMainGraph: function (newFlag, oldFlag){
@@ -125,7 +128,8 @@ export default {
 
         this.simulation = d3.forceSimulation(this.data.nodes)
             .force("charge", d3.forceManyBody().strength(-2000))
-            .force("link", d3.forceLink(this.data.links).distance(radius * 10))
+            .force("link", d3.forceLink(this.data.links).distance(radius * 10).id(function(d){return d.id;}))
+            // .force("link", d3.forceLink(this.data.links).distance(radius * 10))
             .force('collide', d3.forceCollide().radius(radius))
             .force("x", d3.forceX())
             .force("y", d3.forceY())
@@ -189,30 +193,30 @@ export default {
       // this.simulation.alpha(0.3).restart();
     },
 
-    getSubGraph(){
-      const url = "http://127.0.0.1:5000/api/get_subGraphData";
-      this.axios.get(url, {params: {baseNodeIndex: this.selectedNode.index, numLayer: 3}})
-          .then((res) => {
-            this.mouseLeaveNode();
-            console.log(res.data);
-            this.data = res.data.subgraph;
-            this.indexNew2Old = res.data.new2old;
-            this.updateGraph();
-          })
-          .catch((error) =>{
-            console.log(error)
-          })
-    },
-
     findGraph(input){
       console.log("搜索");
       let searchData = input;
       console.log(searchData);
-      const url = "http://10.249.46.195:7478/fun1";
+      this.path = this.$store.state.clickPath[0];
+      let num = 0;
+      if(this.path == 1) {
+        num = 1;
+      }
+      else if(this.path == 2){
+        num = 3;
+      }
+      else {
+        num = 2;
+      }
+      // const url = "http://127.0.0.1:5000//fun" + num;
+      const url = "http://10.249.46.195:7478/fun" + num;
+      console.log(url);
       this.axios.get(url, {params: searchData})
           .then((res) => {
             console.log(res.data);
-            if(res.data == false) {
+            if(res.data.nodes.length === 0 && res.data.links.length === 0) {
+              console.log('没找到');
+              this.dialogShow = true;
               this.$message({
                 message: '未找到相关信息',
                 type: 'warning'
@@ -221,7 +225,7 @@ export default {
             else {
               this.data = res.data;
               // this.indexNew2Old = res.data.new2old;
-              this.initialGraph();
+              // this.initialGraph();
               this.updateGraph();
               // if (this.isInList(this.searchInput, this.autoCompleteList)){
               //   this.dialogCardVisible = true
@@ -237,28 +241,6 @@ export default {
 
     },
 
-    searchAutoComplete(queryString, cb){
-      // console.log(queryString)
-
-      if (!this.isInList(queryString, this.autoCompleteList)){
-        this.isRecommendQuery = false
-        const url = "http://127.0.0.1:5000/api/get_autoComplete";
-        this.axios.get(url, {params: {search: this.searchInput}})
-            .then((res) => {
-              // console.log(res.data);
-              // this.data = res.data;
-              this.autoCompleteList = res.data;
-              cb(res.data);
-            })
-            .catch((error) =>{
-              console.log(error);
-            })
-      }
-      else {
-        cb([]);
-      }
-    },
-
     handleSelect() {
       this.isRecommendQuery = true;
     },
@@ -271,23 +253,6 @@ export default {
       }
       return false;
     },
-
-
-    showMainGraph(){
-      // console.log(this.isShowMainGraph, this.$store.state.showMainGraph)
-      const url = "http://127.0.0.1:5000/api/get_mainGraphData";
-      this.axios.get(url)
-          .then((res) => {
-            console.log(res.data);
-            this.data = res.data;
-            this.indexNew2Old = [];
-            this.updateGraph();
-
-          })
-          .catch((error) =>{
-            console.log(error)
-          })
-    },
     drawNodes() {
       this.node = this.node
           .data(this.data.nodes)
@@ -296,7 +261,6 @@ export default {
                   .attr("r", 0)
                   .attr("fill", d => colorList[d.type])
                   .attr("fill-opacity", opacity)
-                  .attr("index", d => d.index)
                   .call(enter => enter.transition().attr("r", radius))
                   .call(this.dragger),
               update => update
@@ -314,28 +278,58 @@ export default {
                   .attr("index", d => d.index)
                   .attr("text-anchor","middle")
                   .text(d => {
-                    if (d.label.length >= 7) {
-                      // return d.label
-                      return d.label.substr(0, 4) + '…'
-                    }
-                    else {
-                      return d.label
-                    }
+                    return d.label
                   })
+                  .attr("font-size", 10)
                   .call(this.dragger),
               update => update.text(d => {
-                if (d.label.length >= 4) {
-                  return d.label.substr(0, 4) + '…'
-                }
-                else {
-                  return d.label
-                }
+                return d.label
               }),
               exit => exit.remove()
           );
     },
+    SameLinks(){
+      var links = this.data.links;
+      _.each(links, function(link) {
+        var same = _.where(links, {
+          'source': link.source,
+          'target': link.target
+        });
 
+        _.each(same, function(s, i) {
+          s.sameIndex = (i + 1);
+          s.sameTotal = same.length;
+          s.sameTotalHalf = (s.sameTotal / 2);
+          s.sameUneven = ((s.sameTotal % 2) !== 0);
+          s.sameMiddleLink = ((s.sameUneven === true) && (Math.ceil(s.sameTotalHalf) === s.sameIndex));
+          s.sameLowerHalf = (s.sameIndex <= s.sameTotalHalf);
+          s.sameArcDirection = s.sameLowerHalf ? 0 : 1;
+          s.sameIndexCorrected = s.sameLowerHalf ? s.sameIndex : (s.sameIndex - Math.ceil(s.sameTotalHalf));
+        });
+
+        let sameStandard = same[0];
+        let sourceStandard = sameStandard.source;
+        let targetStandard = sameStandard.target;
+        _.each(same,function(s){
+          if(s.source === targetStandard && s.target === sourceStandard && s.sameTotal > 1){
+            s.sameArcDirection = s.sameArcDirection === 0 ? 1 : 0
+          }
+        })
+      });
+      var maxSame = _.chain(links)
+          .sortBy(function(x) {
+            return x.sameTotal;
+          })
+          .last()
+          .value().sameTotal;
+
+      _.each(links, function(link) {
+        link.maxSameHalf = Math.floor(maxSame / 2);
+      });
+      console.log(links);
+    },
     drawLinks() {
+      this.SameLinks();
       this.link = this.link
           .data(this.data.links)
           .join(
@@ -345,10 +339,7 @@ export default {
                   .attr("stroke-width", 2)
                   .attr("stroke-opacity", opacity)
                   .attr("marker-end", "url(#arrow)")
-                  .attr("index", d => d.index)
-                  .attr("id", d => "link_path_"+d.index)
-                  .on("mouseenter", d => this.mouseEnterEdge(d))
-                  .on("mouseleave",d => this.mouseLeaveEdge(d)),
+                  .attr("id", function(d,i){return 'link_path'+i;}),
               update => update,
               exit => exit.remove()
           );
@@ -358,9 +349,9 @@ export default {
             enter => enter.append("text")
                 .attr("text-anchor", "middle")
                 .append("textPath")
-                .attr("xlink:href", d => "#link_path_"+d.index)
+                .attr("xlink:href", function(d,i){return '#link_path'+i;})
                 .attr("startOffset", "50%")
-                .text(d => d.label)
+                .text(d => d.description)
                 .attr("fill", "#999")
                 .attr("font-size", 15)
                 .call(this.dragger),
@@ -385,7 +376,7 @@ export default {
       this.node.attr("cx", d => d.x)
           .attr("cy", d => d.y);
 
-      this.link.attr("d", d => this.linkArc(d))
+      this.link.attr("d", d => this.linkArc(d));
 
       this.linkText
           .attr('x', d => Math.abs(d.source.x - d.target.x) / 2)
@@ -397,15 +388,23 @@ export default {
           .attr("cy", this.cursorNode.y);
     },
     linkArc(d){
-      if(this.linkNotExist(d.source.index, d.target.index) || this.linkNotExist(d.target.index, d.source.index)) {
-        return 'M ' + (d.source.x - offsetX(d)) + ' ' + (d.source.y - offsetY(d))+' L '+ (d.target.x + offsetX(d)) +' '+ (d.target.y + offsetY(d));
+      var dx = d.target.x - d.source.x + 2 * offsetX(d),
+          dy = d.target.y - d.source.y + 2 * offsetY(d),
+          dr = Math.sqrt(dx*dx+dy*dy) * 1.2,
+          unevenCorrection = (d.sameUneven ? 0 : 0.5),
+          arc = ((dr * d.maxSameHalf) / (d.sameIndexCorrected - unevenCorrection));
+
+      if (d.sameMiddleLink) {
+        arc = 0;
       }
-      else{
-        var dx = d.target.x - d.source.x + 2 * offsetX(d),
-            dy = d.target.y - d.source.y + 2 * offsetY(d),
-            dr = Math.sqrt(dx*dx+dy*dy) * 1.2;
-        return 'M ' + (d.source.x - offsetX(d)) + ' ' + (d.source.y - offsetY(d)) + 'A' + dr + ',' + dr + ' 0 0,1 ' + (d.target.x + offsetX(d)) + ',' + (d.target.y + offsetY(d));
-      }
+      return "M" + (d.source.x - offsetX(d)) + " " + (d.source.y - offsetY(d)) + "A" + arc + "," + arc + " 0 0," + d.sameArcDirection + " " + (d.target.x + offsetX(d)) + "," + (d.target.y + offsetY(d));
+      //   return 'M ' + (d.source.x - offsetX(d)) + ' ' + (d.source.y - offsetY(d))+' L '+ (d.target.x + offsetX(d)) +' '+ (d.target.y + offsetY(d));
+      // }
+      // else{
+      //   var dx = d.target.x - d.source.x + 2 * offsetX(d),
+      //       dy = d.target.y - d.source.y + 2 * offsetY(d),
+      //       dr = Math.sqrt(dx*dx+dy*dy) * 1.2;
+      //   return 'M ' + (d.source.x - offsetX(d)) + ' ' + (d.source.y - offsetY(d)) + 'A' + dr + ',' + dr + ' 0 0,1 ' + (d.target.x + offsetX(d)) + ',' + (d.target.y + offsetY(d));
 
       function offsetX(d){
         return radius * (d.source.x - d.target.x) / Math.hypot(d.source.x-d.target.x, d.source.y-d.target.y)
@@ -447,7 +446,7 @@ export default {
     // console.log(source, target);
     let notExist = true;
     for(let i = 0, len=this.data.links.length; i < len; i++) {
-      if(this.data.links[i].source.index === source && this.data.links[i].target.index === target){
+      if(this.data.links[i].source.id === source && this.data.links[i].target.id === target){
         notExist = false;
       }
     }

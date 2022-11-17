@@ -2,12 +2,12 @@
   <div id="Header">
     <el-row>
       <el-col id="logo"></el-col>
-      <el-col id="menu" >
+<!--      <el-col :span="4" :offset="4">金融实体关系关联计算系统</el-col>-->
+      <el-col id="menu">
         <el-menu  class="el-menu-demo" mode="horizontal" @select="handleSelect">
           <el-menu-item index="1">关系搜索</el-menu-item>
           <el-menu-item index="2">关联方</el-menu-item>
           <el-menu-item index="3">股权结构</el-menu-item>
-          <el-menu-item index="4">疑似实际控股人</el-menu-item>
         </el-menu>
       </el-col>
     </el-row>
@@ -42,10 +42,6 @@ export default {
       else if(keyPath[0] === '3'){
         this.clickType = 'showRelatedPartiesPage';
         this.$router.push({path:'shareholding'});
-      }
-      else if(keyPath[0] === '4'){
-        this.clickType = 'showRelatedPartiesPage';
-        this.$router.push({path:'stockholder'});
       }
       // if (keyPath[0] === "5" || keyPath[0] === "8") {
       //   this.$store.commit('showMainGraph', true);
