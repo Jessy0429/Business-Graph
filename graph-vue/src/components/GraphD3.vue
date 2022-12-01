@@ -199,14 +199,14 @@ export default {
       console.log(searchData);
       this.path = this.$store.state.clickPath[0];
       let num = 0;
-      if(this.path == 1) {
-        num = 1;
-      }
-      else if(this.path == 2){
+      if(this.path == 2) {
         num = 3;
       }
-      else {
+      else if(this.path == 3){
         num = 2;
+      }
+      else {
+        num = this.path;
       }
       // const url = "http://127.0.0.1:5000//fun" + num;
       const url = "http://10.249.46.195:7478/fun" + num;

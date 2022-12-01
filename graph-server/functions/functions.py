@@ -3,14 +3,15 @@ import imp
 from pickle import FALSE
 from tkinter import CENTER
 from py2neo import Graph
-import jieba, eventlet, time
+# import jieba, eventlet, time
 import py2neo, json, flask
 from flask import request, Flask, jsonify, make_response
 from flask_cors import CORS
 import json
 
 def connectNeo4j():
-    return Graph("http://localhost:7474/", auth=("neo4j", "123"))
+    # return Graph("http://localhost:7474/", auth=("neo4j", "123"))
+    return 0
 
 
 def showDataType(graph):
@@ -20,12 +21,12 @@ def showDataType(graph):
 
 def getName(graph, text):
     g_TimeLine = 1.5
-    eventlet.monkey_patch()
-    with eventlet.Timeout(g_TimeLine, False):
-        gql = "match (p:vertices) where p.name contains '{}' return p.name, id(p) limit 1".format(text)
-        res = graph.run(gql).data()
-        print(res[0]['p.name'])
-        return res[0]['id(p)']
+    # eventlet.monkey_patch()
+    # with eventlet.Timeout(g_TimeLine, False):
+    #     gql = "match (p:vertices) where p.name contains '{}' return p.name, id(p) limit 1".format(text)
+    #     res = graph.run(gql).data()
+    #     print(res[0]['p.name'])
+    #     return res[0]['id(p)']
     return False
 
 
@@ -522,37 +523,44 @@ CORS(app)
 @app.route('/fun1', methods=['get'])
 #关联关系
 def fun1():
-    print(request.data)
-    source = json.loads(request.data)['source']
-    target = json.loads(request.data)['target']
-    ret = ass.priority5(source, target)
-    return json.dumps(ret)
+    source = request.args['source']
+    target = request.args['target']
+    print(source, target)
+    if source == '11' and target == '111':
+        ret = {'nodes': [{'id': 4221017, 'label': '上海能辉科技股份有限公司', 'type': '2'}, {'id': 1589544, 'label': '江苏中信博新能源科技股份有限公司', 'type': '2'}, {'id': 24388799, 'label': '张家港保税区登月国际贸易有限公司', 'type': '3'}], 'links': [{'source': 4221017, 'target': 1589544, 'description': 'SUPPLIER'}, {'source': 1589544, 'target': 24388799, 'description': 'SUPPLIER'}]}
+    else:
+        ret = {'nodes': [], 'links': []}
+    return jsonify(ret)
 
 
 @app.route('/fun2', methods=['get'])
 #股权穿透
 def fun2():
-    center = json.loads(request.data)['center']
-    ret = eq.priority1(center)
-    return json.dumps(ret)
+    # center = json.loads(request.data)['center']
+    # ret = eq.priority1(center)
+    center = request.args['center']
+    print(center)
+    ret = {'nodes': [{'id': 1500570990, 'label': '刘建明', 'type': '1'}, {'id': 6999967, 'label': '淘宝众筹(北京)投资管理有限公司', 'type': '3'}, {'id': 1500570989, 'label': '余玉喜', 'type': '1'}, {'id': 1500570992, 'label': '李玲', 'type': '1'}, {'id': 1500570991, 'label': '张雷', 'type': '1'}], 'links': [{'source': 1500570990, 'target': 6999967, 'description': '0.10000'}, {'source': 1500570989, 'target': 6999967, 'description': '0.40000'}, {'source': 1500570992, 'target': 6999967, 'description': '0.10000'}, {'source': 1500570991, 'target': 6999967, 'description': '0.40000'}]}
+    return jsonify(ret)
 
 
-# @app.route('/fun3', methods=['get'])
+@app.route('/fun3', methods=['get'])
 #实际控股人
 def fun3():
-    # source = json.loads(request.data)['source']
-    # order = json.loads(request.data)['order']
-    source = "广州钿菲配资科技有限公司"
+    company = request.args['source']
+    order = request.args['order']
+    company = "广州钿菲配资科技有限公司"
     order = "manager_holder"
     company_id = 44846867
-    if not company_id: return json.dumps({})
-    company = getNodeByID(graph, company_id)
+    if not company_id:
+        ret = {'node': [], 'links': []}
+        return jsonify(ret)
     _, holder = con.single_controler_match(company)
     print(holder['name'])
     if holder is None: return json.dumps({})
     ret = aff.match(order, company, holder)
     print(ret)
-    return json.dumps(ret)
+    return jsonify(ret)
 
 @app.route('/ping', methods=['get'])
 def ping():
@@ -561,4 +569,5 @@ def ping():
     return response
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=7478, debug=True)
+    # app.run(host='0.0.0.0', port=7478, debug=True)
+    app.run()

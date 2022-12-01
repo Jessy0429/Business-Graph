@@ -39,7 +39,7 @@
       </el-col>
     </el-row>
 
-    <el-row v-if="(this.path === 2)" key="2">
+    <el-row v-if="(this.path === 2) || (this.path === 3)" key="2">
       <el-col :span="4" :offset="4">
         <el-input
             placeholder="请输入内容"
@@ -103,7 +103,7 @@ export default {
       else if (this.path == 1){
         input = {'source': this.source, 'order': this.searchRelation[0]};
       }
-      else if (this.path == 2){
+      else {
         input = {'center': this.source};
       }
 

@@ -4,6 +4,7 @@ import MainPage from "@/components/MainPage";
 import RelationshipPage from "@/components/RelationshipPage";
 import RelatedPartiesPage from "@/components/RelatedPartiesPage";
 import ShareholdingPage from "@/components/ShareholdingPage";
+import ConnectionPage from "@/components/ConnectionPage";
 
 Vue.use(Router)
 
@@ -16,7 +17,8 @@ export default new Router({
             children:[
                 {path: 'relationship', name: 'relationship', component: RelationshipPage},
                 {path: 'relatedparty', name: 'relatedparty', component: RelatedPartiesPage},
-                {path: 'shareholding', name: 'shareholding', component: ShareholdingPage}
+                {path: 'shareholding', name: 'shareholding', component: ShareholdingPage},
+                {path: 'connection', name: 'connection', component: ConnectionPage}
             ]
         }
     ]
